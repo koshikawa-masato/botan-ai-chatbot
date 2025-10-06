@@ -86,14 +86,20 @@ class BotanVoiceClient:
             print(f"[TEXT] {text}")
 
             # Generate speech
-            # Note: optimize_streaming_latency is not supported in eleven_v3
-            audio_generator = self.client.text_to_speech.convert(
-                voice_id=self.voice_id,
-                output_format="mp3_44100_128",
-                text=text,
-                model_id=self.model,
-                voice_settings=self.voice_settings
-            )
+            # Note: optimize_streaming_latency is supported in turbo and v2 models, but not in v3
+            convert_params = {
+                "voice_id": self.voice_id,
+                "output_format": "mp3_44100_128",
+                "text": text,
+                "model_id": self.model,
+                "voice_settings": self.voice_settings
+            }
+
+            # Add optimize_streaming_latency for turbo and v2 models
+            if "turbo" in self.model or "v2" in self.model:
+                convert_params["optimize_streaming_latency"] = 4
+
+            audio_generator = self.client.text_to_speech.convert(**convert_params)
 
             # Save to file
             with open(output_path, "wb") as f:
