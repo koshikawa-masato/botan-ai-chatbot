@@ -30,8 +30,9 @@ except Exception as e:
 class LearningBotanChat:
     def __init__(self, model_name="elyza:botan_custom", enable_voice=False):
         self.model_name = model_name
-        self.api_url = "http://localhost:11434/api/generate"
+        self.api_url = "http://localhost:11434/api/chat"
         self.conversation_history = []
+        self.chat_messages = []  # Ollama用の会話履歴
         self.session_start = datetime.now()
 
         # 音声合成システム
@@ -56,11 +57,52 @@ class LearningBotanChat:
         except:
             return False
 
+    def speak_with_progress(self, text):
+        """音声再生をプログレス表示付きで実行"""
+        import threading
+        import time
+
+        # プログレス表示用のフラグ
+        generating = [True]
+
+        def show_progress():
+            """音声生成中のアニメーション表示"""
+            frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+            idx = 0
+            while generating[0]:
+                print(f"\r🔊 {frames[idx % len(frames)]} 音声生成中...", end="", flush=True)
+                idx += 1
+                time.sleep(0.1)
+
+        # プログレス表示スレッド開始
+        progress_thread = threading.Thread(target=show_progress, daemon=True)
+        progress_thread.start()
+
+        try:
+            # 音声生成・再生
+            self.voice_system.speak(text, play_audio=True)
+
+            # プログレス停止
+            generating[0] = False
+            progress_thread.join(timeout=0.5)
+            print("\r🔊 ✓ 音声生成完了     ")
+        except Exception as e:
+            generating[0] = False
+            progress_thread.join(timeout=0.5)
+            print(f"\r⚠️ 音声再生エラー: {e}    ")
+            raise
+
     def send_message(self, user_input):
-        """メッセージを牡丹に送信"""
+        """メッセージを牡丹に送信（会話履歴を含む）"""
+        # ユーザーメッセージを履歴に追加
+        self.chat_messages.append({
+            "role": "user",
+            "content": user_input
+        })
+
         payload = {
             "model": self.model_name,
-            "prompt": user_input,
+            "messages": self.chat_messages,
             "stream": True
         }
 
@@ -79,8 +121,8 @@ class LearningBotanChat:
                 if line:
                     try:
                         data = json.loads(line)
-                        if "response" in data:
-                            token = data["response"]
+                        if "message" in data and "content" in data["message"]:
+                            token = data["message"]["content"]
                             print(token, end="", flush=True)
                             full_response += token
 
@@ -91,14 +133,19 @@ class LearningBotanChat:
 
             print()  # 改行
 
+            # アシスタントメッセージを履歴に追加
+            if full_response:
+                self.chat_messages.append({
+                    "role": "assistant",
+                    "content": full_response
+                })
+
             # 音声再生
             if self.enable_voice and self.voice_system and full_response:
                 try:
-                    print("🔊 [音声生成中...]", end=" ", flush=True)
-                    self.voice_system.speak(full_response, play_audio=True)
-                    print("✓")
+                    self.speak_with_progress(full_response)
                 except Exception as e:
-                    print(f"\n⚠️ 音声再生エラー: {e}")
+                    pass  # エラーは speak_with_progress 内で表示済み
 
             return full_response
 
@@ -262,11 +309,9 @@ class LearningBotanChat:
         # 音声機能が有効なら挨拶を音声で再生
         if self.enable_voice and self.voice_system:
             try:
-                print("🔊 [音声生成中...]", end=" ", flush=True)
-                self.voice_system.speak(greeting, play_audio=True)
-                print("✓")
+                self.speak_with_progress(greeting)
             except Exception as e:
-                print(f"\n⚠️ 音声再生エラー: {e}")
+                pass  # エラーは speak_with_progress 内で表示済み
 
         print()  # 空行
 
@@ -287,6 +332,7 @@ class LearningBotanChat:
                 # クリアコマンド
                 if user_input.lower() == 'clear':
                     self.conversation_history.clear()
+                    self.chat_messages.clear()
                     print("✅ 会話履歴をクリアしました\n")
                     continue
 
