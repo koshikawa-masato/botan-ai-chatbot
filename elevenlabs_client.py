@@ -5,10 +5,15 @@ Uses ElevenLabs v3 API with kuon voice
 """
 
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from elevenlabs import ElevenLabs, VoiceSettings
 import requests
+
+# Add utils directory to path
+sys.path.insert(0, str(Path(__file__).parent))
+from utils.crypto import get_api_key
 
 # Load environment variables
 load_dotenv()
@@ -16,7 +21,12 @@ load_dotenv()
 class BotanVoiceClient:
     def __init__(self):
         """Initialize ElevenLabs client for Botan"""
-        self.api_key = os.getenv("ELEVENLABS_API_KEY")
+        # Try to get API key (decrypt if encrypted, otherwise use plain)
+        encrypted_key = os.getenv("ELEVENLABS_API_KEY")
+        if encrypted_key and encrypted_key.startswith("ENC_"):
+            self.api_key = get_api_key("ELEVENLABS_API_KEY")
+        else:
+            self.api_key = encrypted_key
 
         if not self.api_key:
             raise ValueError(
@@ -76,9 +86,9 @@ class BotanVoiceClient:
             print(f"[TEXT] {text}")
 
             # Generate speech
+            # Note: optimize_streaming_latency is not supported in eleven_v3
             audio_generator = self.client.text_to_speech.convert(
                 voice_id=self.voice_id,
-                optimize_streaming_latency=0,
                 output_format="mp3_44100_128",
                 text=text,
                 model_id=self.model,
