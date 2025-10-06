@@ -117,8 +117,8 @@ def generate_append(relationship, nickname, personality_trait, background):
 def create_modelfile_with_append(append_text):
     """Basic + Appendの完全なModelfileを生成"""
 
-    # Basic版を読み込む
-    basic_path = Path("Modelfile_botan_basic")
+    # Basic版を読み込む（ルートディレクトリから）
+    basic_path = Path("../Modelfile_botan_basic")
 
     if not basic_path.exists():
         print("❌ Modelfile_botan_basicが見つかりません。")
@@ -147,8 +147,8 @@ def create_modelfile_with_append(append_text):
 def save_modelfile(content, model_name="elyza:botan_custom"):
     """Modelfileを保存してモデルを作成"""
 
-    # Modelfileを保存
-    modelfile_path = Path("Modelfile_botan_custom")
+    # Modelfileを保存（ルートディレクトリに）
+    modelfile_path = Path("../Modelfile_botan_custom")
 
     with open(modelfile_path, 'w', encoding='utf-8') as f:
         f.write(content)
@@ -188,7 +188,7 @@ def save_append_config(relationship, nickname, personality_trait, background):
         "background": background
     }
 
-    config_path = Path("botan_append_config.json")
+    config_path = Path("../botan_append_config.json")
 
     with open(config_path, 'w', encoding='utf-8') as f:
         json.dump(config, f, ensure_ascii=False, indent=2)

@@ -40,8 +40,8 @@ class BotanVoiceClient:
             use_speaker_boost=os.getenv("ELEVENLABS_USE_SPEAKER_BOOST", "true").lower() == "true"
         )
 
-        # Cache directory
-        self.cache_dir = Path("voice_cache")
+        # Cache directory (in root)
+        self.cache_dir = Path("../voice_cache")
         self.cache_dir.mkdir(exist_ok=True)
 
         print(f"[INFO] ElevenLabs client initialized")

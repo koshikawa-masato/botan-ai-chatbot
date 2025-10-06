@@ -133,7 +133,7 @@ class VoiceSynthesisSystem:
 
     def clear_cache(self):
         """Clear voice cache directory"""
-        cache_dir = Path("voice_cache")
+        cache_dir = Path("../voice_cache")
         if cache_dir.exists():
             for file in cache_dir.glob("*.mp3"):
                 file.unlink()
@@ -143,7 +143,7 @@ class VoiceSynthesisSystem:
 
     def get_cache_size(self):
         """Get total size of cached audio files"""
-        cache_dir = Path("voice_cache")
+        cache_dir = Path("../voice_cache")
         if not cache_dir.exists():
             return 0
 

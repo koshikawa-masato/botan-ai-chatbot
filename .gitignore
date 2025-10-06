@@ -1,7 +1,7 @@
 # 生成されるファイル（個人設定を含むため除外）
 Modelfile_botan_custom
 botan_append_config.json
-learning_session_*.json
+data/learning_session_*.json
 
 # 音声合成関連
 voice_cache/

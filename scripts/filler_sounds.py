@@ -14,7 +14,7 @@ class FillerSoundSystem:
     def __init__(self):
         """フィラー音声システムの初期化"""
         self.voice_client = BotanVoiceClient()
-        self.filler_dir = Path("filler_cache")
+        self.filler_dir = Path("../filler_cache")
         self.filler_dir.mkdir(exist_ok=True)
 
         # 牡丹らしいフィラー音声のバリエーション

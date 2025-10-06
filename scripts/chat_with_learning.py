@@ -323,8 +323,10 @@ class LearningBotanChat:
         }
 
         # ファイル名生成
+        data_dir = Path("../data")
+        data_dir.mkdir(exist_ok=True)
         filename = f"learning_session_{self.session_start.strftime('%Y%m%d_%H%M%S')}.json"
-        filepath = Path(filename)
+        filepath = data_dir / filename
 
         # 保存
         with open(filepath, 'w', encoding='utf-8') as f:

@@ -31,8 +31,9 @@
 1. ✅ テキストベースでのキャラクター確立
 2. ✅ カスタマイズ可能な「うちの牡丹」システム
 3. ✅ 会話評価・学習システムの構築
-4. 🚧 音声合成の実装（次フェーズ）
-5. 🚧 配信システムとの統合（次フェーズ）
+4. ✅ 音声合成の実装（ElevenLabs v3統合）
+5. 🚧 Docker化＋API化（次フェーズ）
+6. 🚧 配信システムとの統合（将来フェーズ）
 
 このリポジトリでは、**AIキャラクターとしての牡丹の基礎**を作り上げ、ユーザーごとにカスタマイズ可能な「うちの牡丹」を育成できるシステムを提供します。
 
@@ -45,6 +46,11 @@
 - [Ollama](https://ollama.ai/) インストール済み
 - ELYZA日本語モデル `elyza:jp8b`
 - **GPU推奨** (NVIDIA CUDA対応 / Apple Silicon)
+
+### 音声合成機能（オプション）
+- ElevenLabs APIキー（[elevenlabs.io](https://elevenlabs.io/)で取得）
+- pygame（音声再生用）
+- 環境: Windows PowerShell推奨（WSL2は一部機能に制限あり）
 
 ### ⚠️ CPU環境について
 
@@ -84,6 +90,7 @@ pip install -r requirements.txt
 ### 1. チュートリアルで「うちの牡丹」を作成
 
 ```bash
+cd scripts
 python3 setup_botan.py
 ```
 
@@ -101,6 +108,7 @@ python3 setup_botan.py
 ollama run elyza:botan_custom
 
 # または学習型チャット（推奨）
+cd scripts
 python3 chat_with_learning.py
 ```
 
@@ -109,21 +117,53 @@ python3 chat_with_learning.py
 - AI自己評価 + ユーザーリアクション評価
 - 会話統計の表示
 
+### 3. 音声合成を有効にする（オプション）
+
+```bash
+# .envファイルを作成（ルートディレクトリ）
+cp .env.example .env
+# .envにElevenLabs APIキーを設定
+
+# 音声合成有効で実行
+cd scripts
+python3 chat_with_learning.py --voice
+
+# 音声＋反射推論システムを有効にする
+python3 chat_with_learning.py --voice --reflection
+```
+
+詳細は [docs/VOICE_SETUP.md](docs/VOICE_SETUP.md) を参照してください。
+
 ---
 
 ## 📁 ファイル構成
 
 ```
 .
-├── Modelfile_botan_basic       # Basic版（17歳JKギャル）
-├── setup_botan.py              # チュートリアルシステム
-├── chat_with_learning.py       # 学習型チャット
-├── auto_evaluate_botan.py      # AI自己評価システム
-├── user_reaction_analyzer.py   # ユーザーリアクション分析
-├── TUTORIAL_SYSTEM.md          # チュートリアル詳細ドキュメント
-├── REACTION_EVALUATION_README.md # 評価システム詳細
-├── requirements.txt            # Pythonライブラリ依存
-└── README.md                   # このファイル
+├── scripts/                        # 実行スクリプト
+│   ├── setup_botan.py              # チュートリアルシステム
+│   ├── chat_with_learning.py       # 学習型チャット（音声対応）
+│   ├── auto_evaluate_botan.py      # AI自己評価システム
+│   ├── user_reaction_analyzer.py   # ユーザーリアクション分析
+│   ├── elevenlabs_client.py        # ElevenLabs API クライアント
+│   ├── voice_synthesis.py          # 音声合成システム
+│   ├── reflection_reasoning.py     # 反射＋推論システム
+│   └── filler_sounds.py            # フィラー音声生成
+├── docs/                           # ドキュメント
+│   ├── TUTORIAL_SYSTEM.md          # チュートリアル詳細
+│   ├── REACTION_EVALUATION_README.md # 評価システム詳細
+│   ├── VOICE_SETUP.md              # 音声合成セットアップガイド
+│   ├── VOICE_SYNTHESIS_ROADMAP.md  # 音声合成開発ロードマップ
+│   ├── ARCHITECTURE_ROADMAP.md     # 次期アーキテクチャ計画
+│   ├── AUDIO_BUFFER_ANALYSIS.md    # WSL2音声バッファ分析
+│   ├── WSL2_LIMITATIONS.md         # WSL2環境の制約事項
+│   └── CHANGELOG.md                # 変更履歴
+├── data/                           # データファイル
+│   └── learning_session_*.json     # 会話履歴ログ
+├── Modelfile_botan_basic           # Basic版（17歳JKギャル）
+├── requirements.txt                # Pythonライブラリ依存
+├── .env.example                    # 環境変数テンプレート
+└── README.md                       # このファイル
 ```
 
 ### 実行後に生成されるファイル
@@ -131,7 +171,10 @@ python3 chat_with_learning.py
 ```
 ├── Modelfile_botan_custom      # あなたの牡丹のModelfile
 ├── botan_append_config.json    # カスタマイズ設定
-└── learning_session_*.json     # 会話履歴ログ
+├── voice_cache/                # 音声キャッシュ（音声有効時）
+├── filler_cache/               # フィラー音声（反射推論有効時）
+├── data/learning_session_*.json # 会話履歴ログ
+└── .env                        # 環境変数（API キーなど）
 ```
 
 ---
@@ -233,8 +276,18 @@ python3 setup_botan.py
 
 ## 📚 詳細ドキュメント
 
-- [TUTORIAL_SYSTEM.md](TUTORIAL_SYSTEM.md) - チュートリアルシステムの詳細
-- [REACTION_EVALUATION_README.md](REACTION_EVALUATION_README.md) - 評価システムの詳細
+### 基本システム
+- [docs/TUTORIAL_SYSTEM.md](docs/TUTORIAL_SYSTEM.md) - チュートリアルシステムの詳細
+- [docs/REACTION_EVALUATION_README.md](docs/REACTION_EVALUATION_README.md) - 評価システムの詳細
+
+### 音声合成
+- [docs/VOICE_SETUP.md](docs/VOICE_SETUP.md) - 音声合成セットアップガイド
+- [docs/VOICE_SYNTHESIS_ROADMAP.md](docs/VOICE_SYNTHESIS_ROADMAP.md) - 開発ロードマップ
+- [docs/WSL2_LIMITATIONS.md](docs/WSL2_LIMITATIONS.md) - WSL2環境の制約
+
+### 開発計画
+- [docs/ARCHITECTURE_ROADMAP.md](docs/ARCHITECTURE_ROADMAP.md) - 次期アーキテクチャ（Docker + API）
+- [docs/CHANGELOG.md](docs/CHANGELOG.md) - 変更履歴
 
 ---
 
@@ -259,14 +312,25 @@ python3 setup_botan.py
 
 ## 🚧 将来の開発予定
 
-### CPU最適化ブランチ（予定）
-CPU環境での快適な会話体験のため、以下の機能を別ブランチで開発予定：
+### Phase 2: Docker化 + API化
+次期バージョンでは、以下の実装を予定しています：
 
-- **反射+推論システム**: 推論中にフィラー応答（「えっとね〜」「あー、なんか…」）を返す
-- **「思い出した」システム**: 推論完了後に詳細な応答を返す
-- **応答時間の最適化**: CPU環境でも自然な会話テンポを実現
+- **Docker Compose**: ワンコマンドで環境構築
+- **FastAPI**: REST API + WebSocket サポート
+- **マルチコンテナ**: AI処理・API・音声処理の分離
+- **OBS統合**: WebSocket経由でのリアルタイム連携
+- **外部API公開**: Discord/Slack/Webhookとの統合
 
-現時点では**GPU環境での使用を推奨**します。
+詳細は [docs/ARCHITECTURE_ROADMAP.md](docs/ARCHITECTURE_ROADMAP.md) を参照してください。
+
+### 反射+推論システム（実装済み）
+CPU/GPU環境での快適な会話体験のため、以下の機能を実装：
+
+- ✅ **反射+推論システム**: ユーザー入力の意図・感情分析と応答戦略の事前計画
+- ✅ **フィラー音声**: 推論中に「えっとね〜」などの音声を再生（Windows環境のみ）
+- ✅ **会話コンテキスト保持**: Ollama chat API による会話履歴の維持
+
+`--reflection` オプションで有効化できます。
 
 ---
 
@@ -288,5 +352,5 @@ CPU環境での快適な会話体験のため、以下の機能を別ブラン�
 ---
 
 **作成日**: 2025-10-06
-**バージョン**: 1.0.1
+**バージョン**: 1.1.0 - Phase 1.1: 音声合成統合完了
 **作成者**: Masato Koshikawa
