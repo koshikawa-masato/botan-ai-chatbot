@@ -15,14 +15,28 @@ class VoiceSynthesisSystem:
         # Initialize ElevenLabs client
         self.voice_client = BotanVoiceClient()
 
+        # Detect WSL2 environment
+        self.is_wsl = self._is_wsl_environment()
+
         # Initialize pygame for audio playback
-        pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
+        # WSL2 needs larger buffer due to PulseAudio → Windows Audio overhead
+        buffer_size = 4096 if self.is_wsl else 2048
+        pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=buffer_size)
 
         # Thread management
         self.playback_thread = None
         self.is_playing = False
 
-        print("[INFO] Voice synthesis system initialized")
+        env_type = "WSL2" if self.is_wsl else "Native"
+        print(f"[INFO] Voice synthesis system initialized ({env_type}, buffer={buffer_size})")
+
+    def _is_wsl_environment(self):
+        """Check if running in WSL2 environment"""
+        try:
+            with open('/proc/version', 'r') as f:
+                return 'microsoft' in f.read().lower()
+        except:
+            return False
 
     def speak(self, text: str, play_audio: bool = True, async_mode: bool = True) -> str:
         """
@@ -74,10 +88,10 @@ class VoiceSynthesisSystem:
         Args:
             audio_path: Path to audio file
         """
-        # Stop previous playback if still running
+        # Wait for previous playback to complete (prevent buffer overflow)
         if self.is_playing and self.playback_thread and self.playback_thread.is_alive():
-            pygame.mixer.music.stop()
-            self.playback_thread.join(timeout=0.5)
+            # In WSL2, ensure previous audio fully completes before starting new one
+            self.playback_thread.join(timeout=30.0)  # Wait up to 30s for long audio
 
         # Start new playback thread
         self.is_playing = True
