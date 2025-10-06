@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-牡丹との学習型チャット
+牡丹との学習型チャット（音声対応版）
 - 会話を記録
 - AI自動評価を実行
 - 高評価会話から学習
+- 音声合成・再生機能
 """
 
 import requests
@@ -18,12 +19,74 @@ from auto_evaluate_botan import evaluate_response
 # user_reaction_analyzer.py から他己評価関数をインポート
 from user_reaction_analyzer import analyze_user_reaction, calculate_combined_score
 
+# voice_synthesis.py から音声合成システムをインポート
+try:
+    from voice_synthesis import VoiceSynthesisSystem
+    VOICE_AVAILABLE = True
+except Exception as e:
+    print(f"[INFO] 音声機能は利用できません: {e}")
+    VOICE_AVAILABLE = False
+
+# reflection_reasoning.py から反射＋推論システムをインポート
+try:
+    from reflection_reasoning import ReflectionReasoningSystem
+    REFLECTION_AVAILABLE = True
+except Exception as e:
+    print(f"[INFO] 反射＋推論システムは利用できません: {e}")
+    REFLECTION_AVAILABLE = False
+
+# filler_sounds.py からフィラー音声システムをインポート
+try:
+    from filler_sounds import FillerSoundSystem
+    FILLER_AVAILABLE = True
+except Exception as e:
+    print(f"[INFO] フィラー音声システムは利用できません: {e}")
+    FILLER_AVAILABLE = False
+
 class LearningBotanChat:
-    def __init__(self, model_name="elyza:botan_v2"):
+    def __init__(self, model_name="elyza:botan_custom", enable_voice=False, enable_reflection=False):
         self.model_name = model_name
-        self.api_url = "http://localhost:11434/api/generate"
+        self.api_url = "http://localhost:11434/api/chat"
         self.conversation_history = []
+        self.chat_messages = []  # Ollama用の会話履歴
         self.session_start = datetime.now()
+
+        # 音声合成システム
+        self.enable_voice = enable_voice and VOICE_AVAILABLE
+        self.voice_system = None
+
+        if self.enable_voice:
+            try:
+                self.voice_system = VoiceSynthesisSystem()
+                print("🔊 音声機能: 有効")
+            except Exception as e:
+                print(f"⚠️ 音声機能の初期化に失敗: {e}")
+                self.enable_voice = False
+        else:
+            print("🔇 音声機能: 無効")
+
+        # 反射＋推論システム
+        self.enable_reflection = enable_reflection and REFLECTION_AVAILABLE
+        self.reflection_system = None
+
+        if self.enable_reflection:
+            try:
+                self.reflection_system = ReflectionReasoningSystem()
+                print("🧠 反射＋推論: 有効")
+            except Exception as e:
+                print(f"⚠️ 反射＋推論の初期化に失敗: {e}")
+                self.enable_reflection = False
+        else:
+            print("⚡ 反射＋推論: 無効（速度優先モード）")
+
+        # フィラー音声システム
+        self.filler_system = None
+        if self.enable_reflection and self.enable_voice and FILLER_AVAILABLE:
+            try:
+                self.filler_system = FillerSoundSystem()
+                print("💭 フィラー音声: 有効（考え中の自然な間を演出）")
+            except Exception as e:
+                print(f"⚠️ フィラー音声の初期化に失敗: {e}")
 
     def check_ollama(self):
         """Ollamaが起動しているか確認"""
@@ -33,11 +96,117 @@ class LearningBotanChat:
         except:
             return False
 
+    def speak_with_progress(self, text):
+        """音声再生をプログレス表示付きで実行"""
+        import threading
+        import time
+
+        # プログレス表示用のフラグ
+        generating = [True]
+
+        def show_progress():
+            """音声生成中のアニメーション表示"""
+            frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+            idx = 0
+            while generating[0]:
+                print(f"\r🔊 {frames[idx % len(frames)]} 音声生成中...", end="", flush=True)
+                idx += 1
+                time.sleep(0.1)
+
+        # プログレス表示スレッド開始
+        progress_thread = threading.Thread(target=show_progress, daemon=True)
+        progress_thread.start()
+
+        try:
+            # 音声生成・再生
+            self.voice_system.speak(text, play_audio=True)
+
+            # プログレス停止
+            generating[0] = False
+            progress_thread.join(timeout=0.5)
+            print("\r🔊 ✓ 音声生成完了     ")
+        except Exception as e:
+            generating[0] = False
+            progress_thread.join(timeout=0.5)
+            print(f"\r⚠️ 音声再生エラー: {e}    ")
+            raise
+
     def send_message(self, user_input):
-        """メッセージを牡丹に送信"""
+        """メッセージを牡丹に送信（会話履歴を含む）"""
+        # 反射＋推論（有効な場合）
+        reflection_result = None
+        reasoning_result = None
+
+        if self.enable_reflection and self.reflection_system:
+            try:
+                # 会話コンテキストを作成
+                context = "\n".join([
+                    f"{msg['role']}: {msg['content']}"
+                    for msg in self.chat_messages[-3:]  # 直近3ターン
+                ]) if self.chat_messages else ""
+
+                # フィラー音声を再生開始（考え中の演出）
+                # 注: WSL2環境ではpygame.mixer.Soundが制限されるため音声なし
+                import pygame
+                filler_sound = None
+                filler_channel = None
+
+                if self.filler_system and self.voice_system:
+                    # WSL2ではSound再生をスキップ（技術的制約）
+                    if self.voice_system.is_wsl:
+                        print("   🤔 ", end="", flush=True)
+                    else:
+                        filler_path = self.filler_system.get_thinking_filler()
+                        try:
+                            # Soundオブジェクトで読み込み（Windows環境のみ）
+                            filler_sound = pygame.mixer.Sound(filler_path)
+                            filler_sound.set_volume(1.0)
+                            filler_channel = filler_sound.play(loops=-1)
+
+                            if filler_channel:
+                                print(f"   💭 ", end="", flush=True)
+                            else:
+                                print(f"   🤔 ", end="", flush=True)
+                        except Exception as e:
+                            print(f"   🤔 ", end="", flush=True)
+                else:
+                    print("   🤔 ", end="", flush=True)
+
+                # 反射（フィラー再生中）
+                reflection_result = self.reflection_system.reflect(user_input, context)
+                print(f"[反射完了: {reflection_result.get('intent', '?')[:15]}] ", end="", flush=True)
+
+                # 推論（フィラー再生中）
+                reasoning_result = self.reflection_system.reason(
+                    user_input,
+                    reflection_result,
+                    "17歳の明るく元気な女子高生ギャル「牡丹」"
+                )
+                print(f"[推論完了] ", end="", flush=True)
+
+                # フィラー停止
+                if filler_channel:
+                    filler_channel.stop()
+
+                print("✓")
+            except Exception as e:
+                # エラー時もフィラーを停止
+                try:
+                    if 'filler_channel' in locals() and filler_channel:
+                        filler_channel.stop()
+                except:
+                    pass
+                print(f"\n   ⚠️ 反射＋推論エラー: {e}")
+
+        # ユーザーメッセージを履歴に追加
+        self.chat_messages.append({
+            "role": "user",
+            "content": user_input
+        })
+
         payload = {
             "model": self.model_name,
-            "prompt": user_input,
+            "messages": self.chat_messages,
             "stream": True
         }
 
@@ -56,8 +225,8 @@ class LearningBotanChat:
                 if line:
                     try:
                         data = json.loads(line)
-                        if "response" in data:
-                            token = data["response"]
+                        if "message" in data and "content" in data["message"]:
+                            token = data["message"]["content"]
                             print(token, end="", flush=True)
                             full_response += token
 
@@ -67,6 +236,21 @@ class LearningBotanChat:
                         continue
 
             print()  # 改行
+
+            # アシスタントメッセージを履歴に追加
+            if full_response:
+                self.chat_messages.append({
+                    "role": "assistant",
+                    "content": full_response
+                })
+
+            # 音声再生
+            if self.enable_voice and self.voice_system and full_response:
+                try:
+                    self.speak_with_progress(full_response)
+                except Exception as e:
+                    pass  # エラーは speak_with_progress 内で表示済み
+
             return full_response
 
         except requests.exceptions.RequestException as e:
@@ -223,7 +407,17 @@ class LearningBotanChat:
         self.print_welcome()
 
         # 初回挨拶
-        print("牡丹: やっほ〜！何か話そうよ〜！何でも聞いてね！\n")
+        greeting = "やっほ〜！何か話そうよ〜！何でも聞いてね！"
+        print(f"牡丹: {greeting}")
+
+        # 音声機能が有効なら挨拶を音声で再生
+        if self.enable_voice and self.voice_system:
+            try:
+                self.speak_with_progress(greeting)
+            except Exception as e:
+                pass  # エラーは speak_with_progress 内で表示済み
+
+        print()  # 空行
 
         while True:
             try:
@@ -242,6 +436,7 @@ class LearningBotanChat:
                 # クリアコマンド
                 if user_input.lower() == 'clear':
                     self.conversation_history.clear()
+                    self.chat_messages.clear()
                     print("✅ 会話履歴をクリアしました\n")
                     continue
 
@@ -315,5 +510,35 @@ class LearningBotanChat:
                 print(f"\n❌ エラーが発生しました: {e}\n")
 
 if __name__ == "__main__":
-    chat = LearningBotanChat(model_name="elyza:botan_v2")
-    chat.run()
+    # 音声機能の確認
+    enable_voice = False
+    if VOICE_AVAILABLE:
+        print("=" * 60)
+        print("🔊 音声機能が利用可能です")
+        print("=" * 60)
+        voice_input = input("音声機能を有効にしますか？ (y/n) [n]: ").strip().lower()
+        enable_voice = voice_input == 'y'
+        print()
+
+    # 反射＋推論の確認
+    enable_reflection = False
+    if REFLECTION_AVAILABLE:
+        print("=" * 60)
+        print("🧠 反射＋推論システムが利用可能です")
+        print("=" * 60)
+        print("※ 有効にすると応答品質が向上しますが、生成時間が長くなります")
+        reflection_input = input("反射＋推論を有効にしますか？ (y/n) [n]: ").strip().lower()
+        enable_reflection = reflection_input == 'y'
+        print()
+
+    chat = LearningBotanChat(
+        model_name="elyza:botan_custom",
+        enable_voice=enable_voice,
+        enable_reflection=enable_reflection
+    )
+    try:
+        chat.run()
+    finally:
+        # クリーンアップ
+        if chat.voice_system:
+            chat.voice_system.cleanup()
