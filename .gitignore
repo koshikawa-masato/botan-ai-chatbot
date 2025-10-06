@@ -5,6 +5,7 @@ learning_session_*.json
 
 # 音声合成関連
 voice_cache/
+filler_cache/
 *.mp3
 *.wav
 .env

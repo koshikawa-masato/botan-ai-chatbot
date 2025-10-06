@@ -35,6 +35,14 @@ except Exception as e:
     print(f"[INFO] 反射＋推論システムは利用できません: {e}")
     REFLECTION_AVAILABLE = False
 
+# filler_sounds.py からフィラー音声システムをインポート
+try:
+    from filler_sounds import FillerSoundSystem
+    FILLER_AVAILABLE = True
+except Exception as e:
+    print(f"[INFO] フィラー音声システムは利用できません: {e}")
+    FILLER_AVAILABLE = False
+
 class LearningBotanChat:
     def __init__(self, model_name="elyza:botan_custom", enable_voice=False, enable_reflection=False):
         self.model_name = model_name
@@ -70,6 +78,15 @@ class LearningBotanChat:
                 self.enable_reflection = False
         else:
             print("⚡ 反射＋推論: 無効（速度優先モード）")
+
+        # フィラー音声システム
+        self.filler_system = None
+        if self.enable_reflection and self.enable_voice and FILLER_AVAILABLE:
+            try:
+                self.filler_system = FillerSoundSystem()
+                print("💭 フィラー音声: 有効（考え中の自然な間を演出）")
+            except Exception as e:
+                print(f"⚠️ フィラー音声の初期化に失敗: {e}")
 
     def check_ollama(self):
         """Ollamaが起動しているか確認"""
@@ -128,20 +145,55 @@ class LearningBotanChat:
                     for msg in self.chat_messages[-3:]  # 直近3ターン
                 ]) if self.chat_messages else ""
 
-                # 反射
-                print("   🤔 [反射中...]", end=" ", flush=True)
-                reflection_result = self.reflection_system.reflect(user_input, context)
-                print(f"意図:{reflection_result.get('intent', '?')[:15]}", end=" ")
+                # フィラー音声を再生開始（考え中の演出）
+                import pygame
+                import threading
+                filler_playing = [False]
 
-                # 推論
-                print("[推論中...]", end=" ", flush=True)
+                def play_filler():
+                    """フィラー音声を非同期再生"""
+                    if self.filler_system and self.voice_system:
+                        filler_path = self.filler_system.get_thinking_filler()
+                        try:
+                            pygame.mixer.music.load(filler_path)
+                            pygame.mixer.music.play()
+                            filler_playing[0] = True
+                        except:
+                            pass
+
+                # フィラー再生スレッド開始
+                filler_thread = threading.Thread(target=play_filler, daemon=True)
+                filler_thread.start()
+
+                if self.filler_system and self.voice_system:
+                    print("   💭 ", end="", flush=True)
+                else:
+                    print("   🤔 ", end="", flush=True)
+
+                # 反射（フィラー再生中）
+                reflection_result = self.reflection_system.reflect(user_input, context)
+                print(f"[反射完了: {reflection_result.get('intent', '?')[:15]}] ", end="", flush=True)
+
+                # 推論（フィラー再生中）
                 reasoning_result = self.reflection_system.reason(
                     user_input,
                     reflection_result,
                     "17歳の明るく元気な女子高生ギャル「牡丹」"
                 )
-                print(f"✓")
+                print(f"[推論完了] ", end="", flush=True)
+
+                # フィラー停止
+                if filler_playing[0]:
+                    pygame.mixer.music.stop()
+
+                print("✓")
             except Exception as e:
+                # エラー時もフィラーを停止
+                if self.filler_system and self.voice_system:
+                    try:
+                        pygame.mixer.music.stop()
+                    except:
+                        pass
                 print(f"\n   ⚠️ 反射＋推論エラー: {e}")
 
         # ユーザーメッセージを履歴に追加
