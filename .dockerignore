@@ -1,0 +1,55 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# 環境
+.env
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# データ/キャッシュ
+data/
+voice_cache/
+filler_cache/
+*.mp3
+*.wav
+
+# ログ
+*.log
+
+# ドキュメント（Docker内では不要）
+docs/
+*.md
+!README.md
+
+# 設定ファイル（個別）
+Modelfile_botan_custom
+botan_append_config.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker関連
+docker-compose.yml
+Dockerfile
+.dockerignore

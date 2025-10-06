@@ -32,8 +32,9 @@
 2. ✅ カスタマイズ可能な「うちの牡丹」システム
 3. ✅ 会話評価・学習システムの構築
 4. ✅ 音声合成の実装（ElevenLabs v3統合）
-5. 🚧 Docker化＋API化（次フェーズ）
-6. 🚧 配信システムとの統合（将来フェーズ）
+5. ✅ Docker化＋API化（FastAPI + マイクロサービス）
+6. 🚧 OBS連携・外部API統合（次フェーズ）
+7. 🚧 配信システムとの統合（将来フェーズ）
 
 このリポジトリでは、**AIキャラクターとしての牡丹の基礎**を作り上げ、ユーザーごとにカスタマイズ可能な「うちの牡丹」を育成できるシステムを提供します。
 
@@ -87,7 +88,33 @@ pip install -r requirements.txt
 
 ## 🚀 クイックスタート
 
-### 1. チュートリアルで「うちの牡丹」を作成
+### 🐳 Docker版（推奨）
+
+```bash
+# 1. Ollamaモデル作成
+cd scripts
+python3 setup_botan.py
+
+# 2. 環境変数設定
+cp .env.example .env
+# .envを編集してELEVENLABS_API_KEYを設定
+
+# 3. Docker起動
+docker-compose up -d
+
+# 4. APIテスト
+python3 test_api_client.py
+```
+
+**API エンドポイント**: `http://localhost:8000`
+
+詳細は [docs/DOCKER_SETUP.md](docs/DOCKER_SETUP.md) を参照
+
+---
+
+### ローカル実行版
+
+#### 1. チュートリアルで「うちの牡丹」を作成
 
 ```bash
 cd scripts
@@ -101,7 +128,7 @@ python3 setup_botan.py
 - 性格（明るく元気、おっとり、ツンデレなど）
 - 背景設定（帰国子女、配信者など）
 
-### 2. 牡丹と会話
+#### 2. 牡丹と会話
 
 ```bash
 # Ollama直接実行
@@ -117,7 +144,7 @@ python3 chat_with_learning.py
 - AI自己評価 + ユーザーリアクション評価
 - 会話統計の表示
 
-### 3. 音声合成を有効にする（オプション）
+#### 3. 音声合成を有効にする（オプション）
 
 ```bash
 # .envファイルを作成（ルートディレクトリ）
@@ -352,5 +379,5 @@ CPU/GPU環境での快適な会話体験のため、以下の機能を実装：
 ---
 
 **作成日**: 2025-10-06
-**バージョン**: 1.1.0 - Phase 1.1: 音声合成統合完了
+**バージョン**: 2.0.0 - Phase 2.0: Docker化＋API化完了
 **作成者**: Masato Koshikawa

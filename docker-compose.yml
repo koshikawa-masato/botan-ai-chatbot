@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # Ollama Service (別途ホストで起動、またはDockerで実行)
+  # Note: Ollamaは大きなモデルを扱うため、通常はホストで直接実行推奨
+  # GPU対応が必要な場合は、nvidia-docker等を使用
+
+  # API Gateway
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - CORE_SERVICE_URL=http://core:8001
+      - VOICE_SERVICE_URL=http://voice:8002
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - core
+      - voice
+    networks:
+      - botan-network
+    restart: unless-stopped
+
+  # Core Service (Ollama連携)
+  core:
+    build:
+      context: .
+      dockerfile: services/core/Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - MODEL_NAME=elyza:botan_custom
+      - PYTHONUNBUFFERED=1
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - botan-network
+    restart: unless-stopped
+
+  # Voice Service (ElevenLabs連携)
+  voice:
+    build:
+      context: .
+      dockerfile: services/voice/Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+      - ELEVENLABS_VOICE_ID=${ELEVENLABS_VOICE_ID:-pFZP5JQG7iQjIQuC4Bku}
+      - ELEVENLABS_MODEL=${ELEVENLABS_MODEL:-eleven_multilingual_v2}
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - voice-cache:/app/voice_cache
+    networks:
+      - botan-network
+    restart: unless-stopped
+
+  # Nginx (Optional - リバースプロキシ)
+  # nginx:
+  #   image: nginx:alpine
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #   depends_on:
+  #     - api
+  #   networks:
+  #     - botan-network
+
+networks:
+  botan-network:
+    driver: bridge
+
+volumes:
+  voice-cache:
