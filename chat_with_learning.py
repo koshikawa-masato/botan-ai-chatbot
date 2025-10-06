@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-牡丹との学習型チャット
+牡丹との学習型チャット（音声対応版）
 - 会話を記録
 - AI自動評価を実行
 - 高評価会話から学習
+- 音声合成・再生機能
 """
 
 import requests
@@ -18,12 +19,34 @@ from auto_evaluate_botan import evaluate_response
 # user_reaction_analyzer.py から他己評価関数をインポート
 from user_reaction_analyzer import analyze_user_reaction, calculate_combined_score
 
+# voice_synthesis.py から音声合成システムをインポート
+try:
+    from voice_synthesis import VoiceSynthesisSystem
+    VOICE_AVAILABLE = True
+except Exception as e:
+    print(f"[INFO] 音声機能は利用できません: {e}")
+    VOICE_AVAILABLE = False
+
 class LearningBotanChat:
-    def __init__(self, model_name="elyza:botan_v2"):
+    def __init__(self, model_name="elyza:botan_custom", enable_voice=False):
         self.model_name = model_name
         self.api_url = "http://localhost:11434/api/generate"
         self.conversation_history = []
         self.session_start = datetime.now()
+
+        # 音声合成システム
+        self.enable_voice = enable_voice and VOICE_AVAILABLE
+        self.voice_system = None
+
+        if self.enable_voice:
+            try:
+                self.voice_system = VoiceSynthesisSystem()
+                print("🔊 音声機能: 有効")
+            except Exception as e:
+                print(f"⚠️ 音声機能の初期化に失敗: {e}")
+                self.enable_voice = False
+        else:
+            print("🔇 音声機能: 無効")
 
     def check_ollama(self):
         """Ollamaが起動しているか確認"""
@@ -67,6 +90,16 @@ class LearningBotanChat:
                         continue
 
             print()  # 改行
+
+            # 音声再生
+            if self.enable_voice and self.voice_system and full_response:
+                try:
+                    print("🔊 [音声生成中...]", end=" ", flush=True)
+                    self.voice_system.speak(full_response, play_audio=True)
+                    print("✓")
+                except Exception as e:
+                    print(f"\n⚠️ 音声再生エラー: {e}")
+
             return full_response
 
         except requests.exceptions.RequestException as e:
@@ -315,5 +348,20 @@ class LearningBotanChat:
                 print(f"\n❌ エラーが発生しました: {e}\n")
 
 if __name__ == "__main__":
-    chat = LearningBotanChat(model_name="elyza:botan_v2")
-    chat.run()
+    # 音声機能の確認
+    enable_voice = False
+    if VOICE_AVAILABLE:
+        print("=" * 60)
+        print("🔊 音声機能が利用可能です")
+        print("=" * 60)
+        voice_input = input("音声機能を有効にしますか？ (y/n) [n]: ").strip().lower()
+        enable_voice = voice_input == 'y'
+        print()
+
+    chat = LearningBotanChat(model_name="elyza:botan_custom", enable_voice=enable_voice)
+    try:
+        chat.run()
+    finally:
+        # クリーンアップ
+        if chat.voice_system:
+            chat.voice_system.cleanup()
