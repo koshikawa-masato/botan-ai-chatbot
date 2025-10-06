@@ -155,11 +155,20 @@ class LearningBotanChat:
                     try:
                         # Soundオブジェクトで読み込み（musicと衝突しない）
                         filler_sound = pygame.mixer.Sound(filler_path)
-                        # 専用チャンネルで再生
-                        filler_channel = filler_sound.play()
-                        print("   💭 ", end="", flush=True)
+
+                        # 音量を最大に設定（WSL2で小さい可能性）
+                        filler_sound.set_volume(1.0)
+
+                        # ループ再生（反射＋推論が終わるまで）
+                        filler_channel = filler_sound.play(loops=-1)  # -1 = 無限ループ
+
+                        # デバッグ: 再生確認
+                        if filler_channel:
+                            print(f"   💭 [F:{filler_path.split('/')[-1]}🔁] ", end="", flush=True)
+                        else:
+                            print(f"   💭 [再生失敗] ", end="", flush=True)
                     except Exception as e:
-                        print(f"   🤔 ", end="", flush=True)
+                        print(f"   🤔 [エラー: {e}] ", end="", flush=True)
                 else:
                     print("   🤔 ", end="", flush=True)
 

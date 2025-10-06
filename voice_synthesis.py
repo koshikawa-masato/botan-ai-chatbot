@@ -88,10 +88,12 @@ class VoiceSynthesisSystem:
         Args:
             audio_path: Path to audio file
         """
-        # Wait for previous playback to complete (prevent buffer overflow)
+        # Stop previous playback if still running (fade out quickly)
         if self.is_playing and self.playback_thread and self.playback_thread.is_alive():
-            # In WSL2, ensure previous audio fully completes before starting new one
-            self.playback_thread.join(timeout=30.0)  # Wait up to 30s for long audio
+            # Gracefully stop the previous audio
+            pygame.mixer.music.stop()
+            # Brief wait for cleanup
+            self.playback_thread.join(timeout=0.1)
 
         # Start new playback thread
         self.is_playing = True
