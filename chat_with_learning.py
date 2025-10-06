@@ -146,29 +146,29 @@ class LearningBotanChat:
                 ]) if self.chat_messages else ""
 
                 # フィラー音声を再生開始（考え中の演出）
+                # 注: WSL2環境ではpygame.mixer.Soundが制限されるため音声なし
                 import pygame
                 filler_sound = None
                 filler_channel = None
 
                 if self.filler_system and self.voice_system:
-                    filler_path = self.filler_system.get_thinking_filler()
-                    try:
-                        # Soundオブジェクトで読み込み（musicと衝突しない）
-                        filler_sound = pygame.mixer.Sound(filler_path)
+                    # WSL2ではSound再生をスキップ（技術的制約）
+                    if self.voice_system.is_wsl:
+                        print("   🤔 ", end="", flush=True)
+                    else:
+                        filler_path = self.filler_system.get_thinking_filler()
+                        try:
+                            # Soundオブジェクトで読み込み（Windows環境のみ）
+                            filler_sound = pygame.mixer.Sound(filler_path)
+                            filler_sound.set_volume(1.0)
+                            filler_channel = filler_sound.play(loops=-1)
 
-                        # 音量を最大に設定（WSL2で小さい可能性）
-                        filler_sound.set_volume(1.0)
-
-                        # ループ再生（反射＋推論が終わるまで）
-                        filler_channel = filler_sound.play(loops=-1)  # -1 = 無限ループ
-
-                        # デバッグ: 再生確認
-                        if filler_channel:
-                            print(f"   💭 [F:{filler_path.split('/')[-1]}🔁] ", end="", flush=True)
-                        else:
-                            print(f"   💭 [再生失敗] ", end="", flush=True)
-                    except Exception as e:
-                        print(f"   🤔 [エラー: {e}] ", end="", flush=True)
+                            if filler_channel:
+                                print(f"   💭 ", end="", flush=True)
+                            else:
+                                print(f"   🤔 ", end="", flush=True)
+                        except Exception as e:
+                            print(f"   🤔 ", end="", flush=True)
                 else:
                     print("   🤔 ", end="", flush=True)
 
