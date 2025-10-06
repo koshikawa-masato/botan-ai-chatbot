@@ -33,8 +33,9 @@
 3. ✅ 会話評価・学習システムの構築
 4. ✅ 音声合成の実装（ElevenLabs v3統合）
 5. ✅ Docker化＋API化（FastAPI + マイクロサービス）
-6. 🚧 OBS連携・外部API統合（次フェーズ）
-7. 🚧 配信システムとの統合（将来フェーズ）
+6. ✅ OBS Browser Source字幕連携（Phase 2.1-A完了）
+7. ✅ WebUI統合（ブラウザチャット）
+8. 🚧 音声認識・配信システム統合（次フェーズ）
 
 このリポジトリでは、**AIキャラクターとしての牡丹の基礎**を作り上げ、ユーザーごとにカスタマイズ可能な「うちの牡丹」を育成できるシステムを提供します。
 
@@ -100,15 +101,33 @@ cp .env.example .env
 # .envを編集してELEVENLABS_API_KEYを設定
 
 # 3. Docker起動
-docker-compose up -d
+docker compose up -d
 
-# 4. APIテスト
-python3 test_api_client.py
+# 4. WebUIでチャット
+http://localhost:8000
 ```
 
-**API エンドポイント**: `http://localhost:8000`
+#### 📺 OBS Studio連携（字幕表示）
 
-詳細は [docs/DOCKER_SETUP.md](docs/DOCKER_SETUP.md) を参照
+```bash
+# OBS Studio - Browser Source設定
+URL: http://localhost:8000/static/obs/subtitle.html
+幅: 1920
+高さ: 1080
+```
+
+WebUIでチャットした内容が、OBS配信画面に字幕として表示されます。
+
+**提供機能:**
+- 🌐 **WebUI**: ブラウザでリアルタイムチャット
+- 🎬 **OBS字幕**: 配信画面に透過字幕表示
+- 🔊 **音声合成**: ElevenLabs v3統合（273倍高速キャッシュ）
+- ⚡ **WebSocket**: リアルタイム双方向通信
+
+詳細は以下を参照:
+- [DOCKER_TEST_REPORT.md](DOCKER_TEST_REPORT.md) - システム概要
+- [WEBUI_GUIDE.md](WEBUI_GUIDE.md) - WebUI利用ガイド
+- [OBS_SETUP_GUIDE.md](OBS_SETUP_GUIDE.md) - OBS設定手順
 
 ---
 
@@ -167,27 +186,39 @@ python3 chat_with_learning.py --voice --reflection
 
 ```
 .
+├── api/                            # API Gateway
+│   ├── main.py                     # FastAPI WebSocket統合
+│   └── Dockerfile                  # APIコンテナ設定
+├── services/                       # マイクロサービス
+│   ├── core/                       # Core Service（Ollama統合）
+│   │   ├── service.py
+│   │   └── Dockerfile
+│   └── voice/                      # Voice Service（音声合成）
+│       ├── service.py
+│       └── Dockerfile
+├── static/                         # WebUI・OBS連携
+│   ├── index.html                  # WebUIチャット画面
+│   ├── chat.js                     # WebSocketクライアント
+│   └── obs/                        # OBS Browser Source
+│       ├── subtitle.html           # 字幕表示（透過背景）
+│       ├── subtitle.css
+│       └── subtitle.js
 ├── scripts/                        # 実行スクリプト
 │   ├── setup_botan.py              # チュートリアルシステム
 │   ├── chat_with_learning.py       # 学習型チャット（音声対応）
-│   ├── auto_evaluate_botan.py      # AI自己評価システム
-│   ├── user_reaction_analyzer.py   # ユーザーリアクション分析
 │   ├── elevenlabs_client.py        # ElevenLabs API クライアント
 │   ├── voice_synthesis.py          # 音声合成システム
-│   ├── reflection_reasoning.py     # 反射＋推論システム
-│   └── filler_sounds.py            # フィラー音声生成
-├── docs/                           # ドキュメント
-│   ├── TUTORIAL_SYSTEM.md          # チュートリアル詳細
-│   ├── REACTION_EVALUATION_README.md # 評価システム詳細
-│   ├── VOICE_SETUP.md              # 音声合成セットアップガイド
-│   ├── VOICE_SYNTHESIS_ROADMAP.md  # 音声合成開発ロードマップ
-│   ├── ARCHITECTURE_ROADMAP.md     # 次期アーキテクチャ計画
-│   ├── AUDIO_BUFFER_ANALYSIS.md    # WSL2音声バッファ分析
-│   ├── WSL2_LIMITATIONS.md         # WSL2環境の制約事項
-│   └── CHANGELOG.md                # 変更履歴
-├── data/                           # データファイル
-│   └── learning_session_*.json     # 会話履歴ログ
-├── Modelfile_botan_basic           # Basic版（17歳JKギャル）
+│   └── reflection_reasoning.py     # 反射＋推論システム
+├── docs/                           # ドキュメント（従来版）
+│   ├── TUTORIAL_SYSTEM.md
+│   ├── VOICE_SETUP.md
+│   └── ARCHITECTURE_ROADMAP.md
+├── DOCKER_TEST_REPORT.md           # Docker化完了レポート
+├── WEBUI_GUIDE.md                  # WebUI利用ガイド
+├── OBS_SETUP_GUIDE.md              # OBS設定手順
+├── VOICE_ARCHITECTURE.md           # 音声合成アーキテクチャ
+├── PHASE2_COMPLETION_REPORT.md     # Phase 2完了レポート
+├── docker-compose.yml              # Docker Compose設定
 ├── requirements.txt                # Pythonライブラリ依存
 ├── .env.example                    # 環境変数テンプレート
 └── README.md                       # このファイル
@@ -379,5 +410,23 @@ CPU/GPU環境での快適な会話体験のため、以下の機能を実装：
 ---
 
 **作成日**: 2025-10-06
-**バージョン**: 2.0.0 - Phase 2.0: Docker化＋API化完了
+**バージョン**: 2.1.0 - Phase 2.1-A: OBS連携＋WebUI完了
 **作成者**: Masato Koshikawa
+
+---
+
+## 🎉 最新アップデート（Phase 2.1-A）
+
+### ✨ 新機能
+- **WebUI統合**: ブラウザでリアルタイムチャット（`http://localhost:8000`）
+- **OBS Browser Source字幕**: 配信画面に透過字幕表示
+- **WebSocket二重配信**: チャット＋OBS同時配信
+- **音声合成キャッシュ**: 273倍高速化（MD5ハッシュベース）
+
+### 📊 テスト結果
+- REST API: 4/4成功 ✅
+- WebSocket: 5/5成功 ✅
+- OBS WebSocket: 3/3成功 ✅
+- **総合成功率: 100%**
+
+詳細は [PHASE2_COMPLETION_REPORT.md](PHASE2_COMPLETION_REPORT.md) を参照してください。
