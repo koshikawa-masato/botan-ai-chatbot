@@ -27,8 +27,16 @@ except Exception as e:
     print(f"[INFO] 音声機能は利用できません: {e}")
     VOICE_AVAILABLE = False
 
+# reflection_reasoning.py から反射＋推論システムをインポート
+try:
+    from reflection_reasoning import ReflectionReasoningSystem
+    REFLECTION_AVAILABLE = True
+except Exception as e:
+    print(f"[INFO] 反射＋推論システムは利用できません: {e}")
+    REFLECTION_AVAILABLE = False
+
 class LearningBotanChat:
-    def __init__(self, model_name="elyza:botan_custom", enable_voice=False):
+    def __init__(self, model_name="elyza:botan_custom", enable_voice=False, enable_reflection=False):
         self.model_name = model_name
         self.api_url = "http://localhost:11434/api/chat"
         self.conversation_history = []
@@ -48,6 +56,20 @@ class LearningBotanChat:
                 self.enable_voice = False
         else:
             print("🔇 音声機能: 無効")
+
+        # 反射＋推論システム
+        self.enable_reflection = enable_reflection and REFLECTION_AVAILABLE
+        self.reflection_system = None
+
+        if self.enable_reflection:
+            try:
+                self.reflection_system = ReflectionReasoningSystem()
+                print("🧠 反射＋推論: 有効")
+            except Exception as e:
+                print(f"⚠️ 反射＋推論の初期化に失敗: {e}")
+                self.enable_reflection = False
+        else:
+            print("⚡ 反射＋推論: 無効（速度優先モード）")
 
     def check_ollama(self):
         """Ollamaが起動しているか確認"""
@@ -94,6 +116,34 @@ class LearningBotanChat:
 
     def send_message(self, user_input):
         """メッセージを牡丹に送信（会話履歴を含む）"""
+        # 反射＋推論（有効な場合）
+        reflection_result = None
+        reasoning_result = None
+
+        if self.enable_reflection and self.reflection_system:
+            try:
+                # 会話コンテキストを作成
+                context = "\n".join([
+                    f"{msg['role']}: {msg['content']}"
+                    for msg in self.chat_messages[-3:]  # 直近3ターン
+                ]) if self.chat_messages else ""
+
+                # 反射
+                print("   🤔 [反射中...]", end=" ", flush=True)
+                reflection_result = self.reflection_system.reflect(user_input, context)
+                print(f"意図:{reflection_result.get('intent', '?')[:15]}", end=" ")
+
+                # 推論
+                print("[推論中...]", end=" ", flush=True)
+                reasoning_result = self.reflection_system.reason(
+                    user_input,
+                    reflection_result,
+                    "17歳の明るく元気な女子高生ギャル「牡丹」"
+                )
+                print(f"✓")
+            except Exception as e:
+                print(f"\n   ⚠️ 反射＋推論エラー: {e}")
+
         # ユーザーメッセージを履歴に追加
         self.chat_messages.append({
             "role": "user",
@@ -416,7 +466,22 @@ if __name__ == "__main__":
         enable_voice = voice_input == 'y'
         print()
 
-    chat = LearningBotanChat(model_name="elyza:botan_custom", enable_voice=enable_voice)
+    # 反射＋推論の確認
+    enable_reflection = False
+    if REFLECTION_AVAILABLE:
+        print("=" * 60)
+        print("🧠 反射＋推論システムが利用可能です")
+        print("=" * 60)
+        print("※ 有効にすると応答品質が向上しますが、生成時間が長くなります")
+        reflection_input = input("反射＋推論を有効にしますか？ (y/n) [n]: ").strip().lower()
+        enable_reflection = reflection_input == 'y'
+        print()
+
+    chat = LearningBotanChat(
+        model_name="elyza:botan_custom",
+        enable_voice=enable_voice,
+        enable_reflection=enable_reflection
+    )
     try:
         chat.run()
     finally:
