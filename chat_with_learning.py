@@ -147,26 +147,19 @@ class LearningBotanChat:
 
                 # フィラー音声を再生開始（考え中の演出）
                 import pygame
-                import threading
-                filler_playing = [False]
-
-                def play_filler():
-                    """フィラー音声を非同期再生"""
-                    if self.filler_system and self.voice_system:
-                        filler_path = self.filler_system.get_thinking_filler()
-                        try:
-                            pygame.mixer.music.load(filler_path)
-                            pygame.mixer.music.play()
-                            filler_playing[0] = True
-                        except:
-                            pass
-
-                # フィラー再生スレッド開始
-                filler_thread = threading.Thread(target=play_filler, daemon=True)
-                filler_thread.start()
+                filler_sound = None
+                filler_channel = None
 
                 if self.filler_system and self.voice_system:
-                    print("   💭 ", end="", flush=True)
+                    filler_path = self.filler_system.get_thinking_filler()
+                    try:
+                        # Soundオブジェクトで読み込み（musicと衝突しない）
+                        filler_sound = pygame.mixer.Sound(filler_path)
+                        # 専用チャンネルで再生
+                        filler_channel = filler_sound.play()
+                        print("   💭 ", end="", flush=True)
+                    except Exception as e:
+                        print(f"   🤔 ", end="", flush=True)
                 else:
                     print("   🤔 ", end="", flush=True)
 
@@ -183,17 +176,17 @@ class LearningBotanChat:
                 print(f"[推論完了] ", end="", flush=True)
 
                 # フィラー停止
-                if filler_playing[0]:
-                    pygame.mixer.music.stop()
+                if filler_channel:
+                    filler_channel.stop()
 
                 print("✓")
             except Exception as e:
                 # エラー時もフィラーを停止
-                if self.filler_system and self.voice_system:
-                    try:
-                        pygame.mixer.music.stop()
-                    except:
-                        pass
+                try:
+                    if 'filler_channel' in locals() and filler_channel:
+                        filler_channel.stop()
+                except:
+                    pass
                 print(f"\n   ⚠️ 反射＋推論エラー: {e}")
 
         # ユーザーメッセージを履歴に追加
