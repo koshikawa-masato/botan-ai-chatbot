@@ -8,6 +8,16 @@
 - Python 3.8以上
 - [Ollama](https://ollama.ai/) インストール済み
 - ELYZA日本語モデル `elyza:jp8b`
+- **GPU推奨** (NVIDIA CUDA対応 / Apple Silicon)
+
+### ⚠️ CPU環境について
+
+**GPU環境を強く推奨します。** CPU環境では推論速度が遅く、快適な会話体験が得られません。
+
+CPU環境で使用する場合:
+- 応答に10秒以上かかる可能性があります
+- 将来的に**反射+推論システム**（フィラー応答で待ち時間をカバー）を別ブランチで提供予定
+- 現時点ではGPU環境でのご利用を推奨します
 
 ### ELYZAモデルのインストール
 
@@ -15,8 +25,14 @@
 # Ollamaが起動していることを確認
 ollama list
 
-# ELYZA日本語モデルをダウンロード
+# ELYZA日本語モデルをダウンロード（約5GB）
 ollama pull elyza:jp8b
+
+# GPU確認（NVIDIA）
+nvidia-smi
+
+# GPU確認（macOS Apple Silicon）
+system_profiler SPDisplaysDataType | grep "Chipset Model"
 ```
 
 ### Pythonライブラリのインストール
@@ -147,6 +163,21 @@ Ollamaがインストールされていません。[公式サイト](https://oll
 ollama pull elyza:jp8b
 ```
 
+### 応答が遅すぎる（10秒以上かかる）
+**CPU環境で実行している可能性があります。**
+
+```bash
+# GPU使用状況確認（NVIDIA）
+nvidia-smi
+
+# Ollamaログ確認
+ollama ps
+```
+
+**解決策:**
+- GPU環境での実行を推奨
+- CPU環境の場合: 将来的に反射+推論システムブランチ（`cpu-optimized`）を提供予定
+
 ### モデル作成に失敗する
 ```bash
 # Ollamaが起動しているか確認
@@ -187,6 +218,19 @@ python3 setup_botan.py
 - 「相手」として接する
 
 **これが「うちの牡丹」システムの核心**
+
+---
+
+## 🚧 将来の開発予定
+
+### CPU最適化ブランチ（予定）
+CPU環境での快適な会話体験のため、以下の機能を別ブランチで開発予定：
+
+- **反射+推論システム**: 推論中にフィラー応答（「えっとね〜」「あー、なんか…」）を返す
+- **「思い出した」システム**: 推論完了後に詳細な応答を返す
+- **応答時間の最適化**: CPU環境でも自然な会話テンポを実現
+
+現時点では**GPU環境での使用を推奨**します。
 
 ---
 
