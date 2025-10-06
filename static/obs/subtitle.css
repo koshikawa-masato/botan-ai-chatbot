@@ -1,0 +1,150 @@
+/* OBS Transparent Background - CRITICAL */
+body {
+    background: transparent !important;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: 'Hiragino Sans', 'Yu Gothic', 'Meiryo', sans-serif;
+}
+
+/* Subtitle Container */
+.subtitle-container {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    max-width: 1200px;
+    text-align: center;
+    z-index: 1000;
+}
+
+/* Subtitle Text Bubble */
+.subtitle-text {
+    display: inline-block;
+    background: rgba(0, 0, 0, 0.75);
+    color: #FFFFFF;
+    font-size: 36px;
+    font-weight: bold;
+    padding: 20px 40px;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
+    margin-bottom: 10px;
+    animation: fadeInUp 0.4s ease-out;
+    max-width: 90%;
+    word-wrap: break-word;
+}
+
+/* Botan Style Subtitle (Gyaru) */
+.subtitle-text.botan-style {
+    background: linear-gradient(135deg, rgba(156, 39, 176, 0.85) 0%, rgba(233, 30, 99, 0.85) 100%);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+/* User Message Style */
+.subtitle-text.user-style {
+    background: rgba(33, 150, 243, 0.75);
+    font-size: 28px;
+}
+
+/* Fade In Animation */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Fade Out Animation */
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+}
+
+/* Connection Status Indicator (Hidden by default) */
+.status-indicator {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #FFFFFF;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    display: none; /* Hide in OBS */
+    z-index: 2000;
+}
+
+.status-indicator.connected {
+    background: rgba(76, 175, 80, 0.7);
+}
+
+.status-indicator.disconnected {
+    background: rgba(244, 67, 54, 0.7);
+}
+
+/* Typing Indicator */
+.typing-indicator {
+    display: inline-block;
+    background: rgba(0, 0, 0, 0.6);
+    color: #FFFFFF;
+    font-size: 24px;
+    padding: 15px 30px;
+    border-radius: 10px;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+/* Speaker Name Tag */
+.speaker-name {
+    display: block;
+    font-size: 20px;
+    font-weight: normal;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 5px;
+}
+
+/* Special Effect: Sparkle (for Botan) */
+.subtitle-text.botan-style::before {
+    content: '🌸';
+    margin-right: 10px;
+}
+
+.subtitle-text.botan-style::after {
+    content: '🌸';
+    margin-left: 10px;
+}
+
+/* Responsive Design */
+@media (max-width: 1280px) {
+    .subtitle-text {
+        font-size: 32px;
+        padding: 18px 35px;
+    }
+}
+
+@media (max-width: 720px) {
+    .subtitle-text {
+        font-size: 24px;
+        padding: 15px 25px;
+    }
+}

@@ -6,6 +6,7 @@ Core Service - Ollama Integration
 
 import requests
 import json
+import os
 from typing import Optional, Dict, List
 from pathlib import Path
 import sys
@@ -20,7 +21,7 @@ class BotanCoreService:
     def __init__(
         self,
         model_name: str = "elyza:botan_custom",
-        ollama_host: str = "http://localhost:11434",
+        ollama_host: str = None,
         enable_reflection: bool = False
     ):
         """
@@ -31,6 +32,10 @@ class BotanCoreService:
             ollama_host: OllamaサーバーのURL
             enable_reflection: 反射+推論システムを有効化
         """
+        # 環境変数から設定を読み取り
+        if ollama_host is None:
+            ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+
         self.model_name = model_name
         self.api_url = f"{ollama_host}/api/chat"
         self.enable_reflection = enable_reflection
@@ -221,8 +226,9 @@ class EvaluationRequest(BaseModel):
 @app.on_event("startup")
 async def startup():
     global core_service
+    model_name = os.getenv("MODEL_NAME", "elyza:botan_custom")
     core_service = BotanCoreService(
-        model_name="elyza:botan_custom",
+        model_name=model_name,
         enable_reflection=True
     )
 
