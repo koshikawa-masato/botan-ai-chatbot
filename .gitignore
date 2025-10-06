@@ -48,3 +48,9 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db
+
+# 内部ドキュメント（開発メモ・設計書など）
+設計日記*.md
+*設計書*.md
+*仕様書*.md
+PR_DESCRIPTION.md
