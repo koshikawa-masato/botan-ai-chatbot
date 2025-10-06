@@ -50,14 +50,12 @@ class VoiceSynthesisSystem:
 
     def play_audio(self, audio_path: str):
         """
-        Play audio file using pygame
+        Play audio file using pygame (synchronous)
 
         Args:
             audio_path: Path to audio file
         """
         try:
-            print(f"[PLAYING] {audio_path}")
-
             # Load and play audio
             pygame.mixer.music.load(audio_path)
             pygame.mixer.music.play()
@@ -66,10 +64,8 @@ class VoiceSynthesisSystem:
             while pygame.mixer.music.get_busy():
                 pygame.time.Clock().tick(10)
 
-            print("[FINISHED] Audio playback complete")
-
         except Exception as e:
-            print(f"[ERROR] Playback failed: {e}")
+            print(f"\n[ERROR] Playback failed: {e}")
 
     def play_audio_async(self, audio_path: str):
         """
@@ -100,9 +96,7 @@ class VoiceSynthesisSystem:
             audio_path: Path to audio file
         """
         try:
-            print(f"[PLAYING] {audio_path}")
-
-            # Load and play audio
+            # Load and play audio silently (no log output to avoid UI disruption)
             pygame.mixer.music.load(audio_path)
             pygame.mixer.music.play()
 
@@ -110,10 +104,8 @@ class VoiceSynthesisSystem:
             while pygame.mixer.music.get_busy():
                 pygame.time.Clock().tick(10)
 
-            print("[FINISHED] Audio playback complete")
-
         except Exception as e:
-            print(f"[ERROR] Playback failed: {e}")
+            print(f"\n[ERROR] Playback failed: {e}")
         finally:
             self.is_playing = False
 

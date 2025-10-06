@@ -256,7 +256,19 @@ class LearningBotanChat:
         self.print_welcome()
 
         # 初回挨拶
-        print("牡丹: やっほ〜！何か話そうよ〜！何でも聞いてね！\n")
+        greeting = "やっほ〜！何か話そうよ〜！何でも聞いてね！"
+        print(f"牡丹: {greeting}")
+
+        # 音声機能が有効なら挨拶を音声で再生
+        if self.enable_voice and self.voice_system:
+            try:
+                print("🔊 [音声生成中...]", end=" ", flush=True)
+                self.voice_system.speak(greeting, play_audio=True)
+                print("✓")
+            except Exception as e:
+                print(f"\n⚠️ 音声再生エラー: {e}")
+
+        print()  # 空行
 
         while True:
             try:

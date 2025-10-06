@@ -79,11 +79,8 @@ class BotanVoiceClient:
 
             # Check cache
             if output_path.exists():
-                print(f"[CACHE] Using cached audio: {output_path}")
+                # Silently use cache
                 return str(output_path)
-
-            print(f"[GENERATING] Converting text to speech...")
-            print(f"[TEXT] {text}")
 
             # Generate speech
             # Note: optimize_streaming_latency is supported in turbo and v2 models, but not in v3
@@ -105,8 +102,6 @@ class BotanVoiceClient:
             with open(output_path, "wb") as f:
                 for chunk in audio_generator:
                     f.write(chunk)
-
-            print(f"[SUCCESS] Audio saved to: {output_path}")
             return str(output_path)
 
         except Exception as e:
